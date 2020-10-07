@@ -76,7 +76,7 @@ const ID: React.FC<
         to="/pokemon"
         style={{ color: 'black', marginLeft: '1rem', marginTop: '1rem' }}
       >
-        <h2>{'< Back to List'}</h2>
+        <h2>{'< Back to Search'}</h2>
       </Link>
       <Container rounded>
         <h1>
