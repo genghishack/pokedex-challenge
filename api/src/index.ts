@@ -37,6 +37,7 @@ const typeDefs = gql`
   }
 
   type Query {
+    pokemonSearch(searchTerm: String): [Pokemon]!
     pokemonMany(skip: Int, limit: Int): [Pokemon!]!
     pokemonOne(id: ID!): Pokemon
   }
@@ -60,6 +61,13 @@ const resolvers: IResolvers<any, any> = {
     },
   },
   Query: {
+    pokemonSearch(_, { searchTerm }: { searchTerm: string }): Pokemon[] {
+      const pokemonValues = Object.values(pokemon);
+      const searchResult = pokemonValues.filter(poke => {
+        return poke.name.indexOf(searchTerm) != -1;
+      });
+      return searchResult;
+    },
     pokemonMany(
       _,
       { skip = 0, limit = 999 }: { skip?: number; limit?: number }

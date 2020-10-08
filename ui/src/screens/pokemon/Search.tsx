@@ -22,11 +22,13 @@ const POKEMON_SEARCH = gql`
 `
 
 const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickLink}) => {
-  // const {loading, error, data} = useQuery(POKEMON_SEARCH)
 
   const [searchTerm, setSearchTerm] = useState('');
+  const {loading, error, data} = useQuery(POKEMON_SEARCH, {variables: {searchTerm}});
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => setSearchTerm(event.target.value);
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+  }
 
   return (
     <>
@@ -38,7 +40,7 @@ const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickL
           onChange={handleChange}
         />
       </Input>
-      <Pokemon clickLink={clickLink} />
+      <Pokemon clickLink={clickLink}/>
     </>
   )
 }
