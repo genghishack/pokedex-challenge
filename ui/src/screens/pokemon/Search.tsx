@@ -36,8 +36,28 @@ const POKEMON_FILTERS = gql`
 const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickLink}) => {
 
   const [searchTerm, setSearchTerm] = useState('');
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
+  }
+
+  const [types, setTypes] = useState<string[]>([]);
+  const [weaknesses, setWeaknesses] = useState<string[]>([]);
+  const handleFilterChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { name: filterName, value: filterValue, checked: filterChecked } = event.target;
+    let filter = types;
+    let setFilter = setTypes;
+    let newFilter = [...types];
+    if (filterName === 'weakness') {
+      filter = weaknesses;
+      setFilter = setWeaknesses;
+      newFilter = [...weaknesses];
+    }
+    if (!filterChecked && filter.includes(filterValue)) {
+      newFilter = filter.filter(value => value !== filterValue);
+    } else if (filterChecked && !filter.includes(filterValue)) {
+      newFilter.push(filterValue);
+    }
+    setFilter(newFilter);
   }
 
   const {loading, error, data} = useQuery(POKEMON_FILTERS);
@@ -52,6 +72,20 @@ const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickL
     return <p>Error!</p>
   }
 
+  const renderFilter = (filterName: "type" | "weakness", filterValue: string) => (
+    <div>
+      <Label>
+        <Checkbox
+          type="checkbox"
+          name={filterName}
+          value={filterValue}
+          onChange={handleFilterChange}
+        />
+        {filterValue}
+      </Label>
+    </div>
+  )
+
   return (
     <>
       <Section>
@@ -59,7 +93,7 @@ const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickL
           type="text"
           placeholder="Search"
           value={searchTerm}
-          onChange={handleChange}
+          onChange={handleSearchChange}
         />
       </Section>
       <Section>
@@ -68,32 +102,14 @@ const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickL
       <Section>
         <Filters>
           <strong>Types</strong>
-          {filters.types.map((filter: string) => {
-            return (
-              <div>
-                <Label>
-                  <Checkbox type="checkbox" value={filter} />
-                  {filter}
-                </Label>
-              </div>
-            );
-          })}
+          {filters.types.map((filter: string) => renderFilter('type', filter))}
         </Filters>
         <Filters>
           <strong>Weaknesses</strong>
-          {filters.weaknesses.map((filter: string) => {
-            return (
-              <div>
-                <Label>
-                  <Checkbox type="checkbox" value={filter} />
-                  {filter}
-                </Label>
-              </div>
-            );
-          })}
+          {filters.weaknesses.map((filter: string) => renderFilter('weakness', filter))}
         </Filters>
       </Section>
-      <Pokemon clickLink={clickLink} searchTerm={searchTerm} />
+      <Pokemon clickLink={clickLink} searchTerm={searchTerm}/>
     </>
   )
 }
