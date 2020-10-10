@@ -51,17 +51,16 @@ const typeDefs = gql`
 
   type Query {
     pokemonFilters: Filters!
-    pokemonMany(skip: Int, limit: Int, searchTerm: String, filters: FiltersInput): [Pokemon!]!
+    pokemonSearch(skip: Int, limit: Int, searchTerm: String): [Pokemon]
+    pokemonMany(skip: Int, limit: Int, filters: FiltersInput): [Pokemon!]!
     pokemonOne(id: ID!): Pokemon
   }
 `
 
 const pokemonValues = Object.values(pokemon);
 
-const arrayContainsArray = (superset: any[], subset: any[]) => {
-  return subset.every(value => superset.indexOf(value) >= 0);
-}
-
+// A simple search function.  Returns an array of pokemon whose names contain
+// the search string.  (Placeholder - does NOT meet the requirements for fuzzy search.)
 const applySearchTerm = (resultSet: Pokemon[], searchTerm: string) => {
   if (searchTerm) {
     return resultSet.filter(poke => {
@@ -71,16 +70,23 @@ const applySearchTerm = (resultSet: Pokemon[], searchTerm: string) => {
   return resultSet;
 }
 
+// Abstracted the sort function, so that it can be called by our search resolver
+// without duplicating code.
+const applySort = (resultSet: Pokemon[], skip: number, limit: number) => {
+  return sortBy(resultSet, poke => parseInt(poke.id, 10)).slice(
+    skip,
+    limit + skip
+  )
+}
+
+// Apply type and weakness filters to an array of pokemon.
+// If no filter terms are provided, all results are returned.
 const applyFilters = (resultSet: Pokemon[], filters: Filters) => {
   return resultSet.filter(poke => {
-    let hasAllTypes = true;
-    let hasAllWeaknesses = true;
-    if (filters.types.length) {
-      hasAllTypes = arrayContainsArray(poke.types, filters.types);
-    }
-    if (filters.weaknesses.length) {
-      hasAllWeaknesses = arrayContainsArray(poke.weaknesses, filters.weaknesses);
-    }
+    const hasAllTypes = (filters.types.length) ?
+      filters.types.every(value => poke.types.indexOf(value) >= 0) : true;
+    const hasAllWeaknesses = (filters.weaknesses.length) ?
+      filters.weaknesses.every(value => poke.weaknesses.indexOf(value) >= 0) : true;
     return (hasAllTypes && hasAllWeaknesses);
   });
 }
@@ -103,6 +109,8 @@ const resolvers: IResolvers<any, any> = {
     },
   },
   Query: {
+    // I wrote this resolver to grab the filter options from the actual data,
+    // in case new pokemon are added in the future with new types or weaknesses.
     pokemonFilters(_, {}: {}): any {
       let typeSet = new Set();
       let weaknessSet = new Set();
@@ -117,23 +125,24 @@ const resolvers: IResolvers<any, any> = {
       const filters = {types: Array.from(typeSet), weaknesses: Array.from(weaknessSet)};
       return filters;
     },
+    // A separate search resolver per the instructions.  I also wrote a combined version
+    // which gives one result set using both search and filter criteria, on the branch
+    // 'combined'.
+    pokemonSearch(
+      _, {
+        skip = 0, limit = 999, searchTerm = ''
+      }: { skip?: number; limit?: number; searchTerm?: string }
+    ): Pokemon[] {
+      return applySort(applySearchTerm(pokemonValues, searchTerm), skip, limit);
+    },
+    // Added filters on types and weaknesses to this resolver, per instructions.
     pokemonMany(
       _,
       {
-        skip = 0, limit = 999, searchTerm = '', filters = {types: [], weaknesses: []}
-      }: { skip?: number; limit?: number; searchTerm?: string; filters?: Filters }
+        skip = 0, limit = 999, filters = {types: [], weaknesses: []}
+      }: { skip?: number; limit?: number; filters?: Filters }
     ): Pokemon[] {
-      // apply search term
-      const searchResults = applySearchTerm(pokemonValues, searchTerm);
-      console.log('searchResults: ', searchResults);
-      // apply filters
-      const filteredResults = applyFilters(searchResults, filters);
-      console.log('filteredResults', filteredResults);
-      // apply sort
-      return sortBy(filteredResults, poke => parseInt(poke.id, 10)).slice(
-        skip,
-        limit + skip
-      )
+      return applySort(applyFilters(pokemonValues, filters), skip, limit);
     },
     pokemonOne(_, {id}: { id: string }): Pokemon {
       return (pokemon as Record<string, Pokemon>)[id]

@@ -38,17 +38,34 @@ const ListItem = styled.li`
   }
 `
 
+const POKEMON_SEARCH = gql`
+  query(
+    $skip: Int, 
+    $limit: Int, 
+    $searchTerm: String
+  ) {
+    pokemonMany(
+      skip: $skip, 
+      limit: $limit, 
+      searchTerm: $searchTerm
+    ) {
+      id
+      name
+      num
+      img
+    }
+  }
+`
+
 const POKEMON_MANY = gql`
   query(
     $skip: Int, 
     $limit: Int, 
-    $searchTerm: String, 
     $filters: FiltersInput
   ) {
     pokemonMany(
       skip: $skip, 
       limit: $limit, 
-      searchTerm: $searchTerm, 
       filters: $filters
     ) {
       id
@@ -67,7 +84,7 @@ const Pokemon: React.FC<RouteComponentProps & {
   clickLink, searchTerm, filters
 }) => {
   const { loading, error, data } = useQuery(POKEMON_MANY, {
-    variables: { searchTerm, filters }
+    variables: { filters }
   })
   const pokemonList:
     | Array<{ id: string; name: string; img: string; num: string }>
