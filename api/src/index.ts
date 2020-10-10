@@ -58,6 +58,33 @@ const typeDefs = gql`
 
 const pokemonValues = Object.values(pokemon);
 
+const arrayContainsArray = (superset: any[], subset: any[]) => {
+  return subset.every(value => superset.indexOf(value) >= 0);
+}
+
+const applySearchTerm = (resultSet: Pokemon[], searchTerm: string) => {
+  if (searchTerm) {
+    return resultSet.filter(poke => {
+      return poke.name.toLowerCase().indexOf(searchTerm.toLowerCase()) != -1;
+    });
+  }
+  return resultSet;
+}
+
+const applyFilters = (resultSet: Pokemon[], filters: Filters) => {
+  return resultSet.filter(poke => {
+    let hasAllTypes = true;
+    let hasAllWeaknesses = true;
+    if (filters.types.length) {
+      hasAllTypes = arrayContainsArray(poke.types, filters.types);
+    }
+    if (filters.weaknesses.length) {
+      hasAllWeaknesses = arrayContainsArray(poke.weaknesses, filters.weaknesses);
+    }
+    return (hasAllTypes && hasAllWeaknesses);
+  });
+}
+
 const resolvers: IResolvers<any, any> = {
   Pokemon: {
     prevEvolutions(rawPokemon: Pokemon) {
@@ -96,13 +123,14 @@ const resolvers: IResolvers<any, any> = {
         skip = 0, limit = 999, searchTerm = '', filters = {types: [], weaknesses: []}
       }: { skip?: number; limit?: number; searchTerm?: string; filters?: Filters }
     ): Pokemon[] {
-      let searchResults = [...pokemonValues];
-      if (searchTerm) {
-        searchResults = pokemonValues.filter(poke => {
-          return poke.name.toLowerCase().indexOf(searchTerm.toLowerCase()) != -1;
-        });
-      }
-      return sortBy(searchResults, poke => parseInt(poke.id, 10)).slice(
+      // apply search term
+      const searchResults = applySearchTerm(pokemonValues, searchTerm);
+      console.log('searchResults: ', searchResults);
+      // apply filters
+      const filteredResults = applyFilters(searchResults, filters);
+      console.log('filteredResults', filteredResults);
+      // apply sort
+      return sortBy(filteredResults, poke => parseInt(poke.id, 10)).slice(
         skip,
         limit + skip
       )
