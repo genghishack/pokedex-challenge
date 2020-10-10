@@ -3,6 +3,11 @@ import sortBy from 'lodash/sortBy'
 import find from 'lodash/find'
 import pokemon from './pokemon.json'
 
+interface Filters {
+  types: string[]
+  weaknesses: string[]
+}
+
 interface Pokemon {
   id: string
   num: string
@@ -24,6 +29,10 @@ const typeDefs = gql`
     types: [String!]!
     weaknesses: [String!]!
   }
+  input FiltersInput {
+    types: [String]
+    weaknesses: [String]
+  }
   type Pokemon {
     id: ID!
     num: ID!
@@ -42,7 +51,7 @@ const typeDefs = gql`
 
   type Query {
     pokemonFilters: Filters!
-    pokemonMany(skip: Int, limit: Int, searchTerm: String): [Pokemon!]!
+    pokemonMany(skip: Int, limit: Int, searchTerm: String, filters: FiltersInput): [Pokemon!]!
     pokemonOne(id: ID!): Pokemon
   }
 `
@@ -78,20 +87,22 @@ const resolvers: IResolvers<any, any> = {
           weaknessSet.add(type);
         })
       });
-      const filters = { types: Array.from(typeSet), weaknesses: Array.from(weaknessSet) };
+      const filters = {types: Array.from(typeSet), weaknesses: Array.from(weaknessSet)};
       return filters;
     },
     pokemonMany(
       _,
-      {skip = 0, limit = 999, searchTerm = ''}: { skip?: number; limit?: number; searchTerm?: string; }
+      {
+        skip = 0, limit = 999, searchTerm = '', filters = {types: [], weaknesses: []}
+      }: { skip?: number; limit?: number; searchTerm?: string; filters?: Filters }
     ): Pokemon[] {
-      let filteredPokemon = [...pokemonValues];
+      let searchResults = [...pokemonValues];
       if (searchTerm) {
-        filteredPokemon = pokemonValues.filter(poke => {
+        searchResults = pokemonValues.filter(poke => {
           return poke.name.toLowerCase().indexOf(searchTerm.toLowerCase()) != -1;
         });
       }
-      return sortBy(filteredPokemon, poke => parseInt(poke.id, 10)).slice(
+      return sortBy(searchResults, poke => parseInt(poke.id, 10)).slice(
         skip,
         limit + skip
       )

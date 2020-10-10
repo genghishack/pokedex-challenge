@@ -4,6 +4,11 @@ import { RouteComponentProps, Link } from '@reach/router'
 import { useQuery, gql } from '@apollo/client'
 import { Container as NesContainer } from 'nes-react'
 
+type Filters = {
+  types: string[];
+  weaknesses: string[];
+}
+
 const Container = styled(NesContainer)`
   && {
     background: white;
@@ -34,8 +39,18 @@ const ListItem = styled.li`
 `
 
 const POKEMON_MANY = gql`
-  query($skip: Int, $limit: Int, $searchTerm: String) {
-    pokemonMany(skip: $skip, limit: $limit, searchTerm: $searchTerm) {
+  query(
+    $skip: Int, 
+    $limit: Int, 
+    $searchTerm: String, 
+    $filters: FiltersInput
+  ) {
+    pokemonMany(
+      skip: $skip, 
+      limit: $limit, 
+      searchTerm: $searchTerm, 
+      filters: $filters
+    ) {
       id
       name
       num
@@ -44,10 +59,16 @@ const POKEMON_MANY = gql`
   }
 `
 
-const Pokemon: React.FC<RouteComponentProps & { clickLink: Function, searchTerm: string }> = ({
-  clickLink, searchTerm
+const Pokemon: React.FC<RouteComponentProps & {
+  clickLink: Function,
+  searchTerm: string,
+  filters: Filters
+}> = ({
+  clickLink, searchTerm, filters
 }) => {
-  const { loading, error, data } = useQuery(POKEMON_MANY, { variables: { searchTerm }})
+  const { loading, error, data } = useQuery(POKEMON_MANY, {
+    variables: { searchTerm, filters }
+  })
   const pokemonList:
     | Array<{ id: string; name: string; img: string; num: string }>
     | undefined = data?.pokemonMany

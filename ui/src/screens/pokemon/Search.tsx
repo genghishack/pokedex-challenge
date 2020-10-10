@@ -109,7 +109,7 @@ const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickL
           {filters.weaknesses.map((filter: string) => renderFilter('weakness', filter))}
         </Filters>
       </Section>
-      <Pokemon clickLink={clickLink} searchTerm={searchTerm}/>
+      <Pokemon clickLink={clickLink} searchTerm={searchTerm} filters={{ types, weaknesses }}/>
     </>
   )
 }
