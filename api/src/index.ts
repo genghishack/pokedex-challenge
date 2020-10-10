@@ -1,4 +1,4 @@
-import { ApolloServer, gql, IResolvers } from 'apollo-server'
+import {ApolloServer, gql, IResolvers} from 'apollo-server'
 import sortBy from 'lodash/sortBy'
 import find from 'lodash/find'
 import pokemon from './pokemon.json'
@@ -20,6 +20,10 @@ interface Pokemon {
 }
 
 const typeDefs = gql`
+  type Filters {
+    types: [String!]!
+    weaknesses: [String!]!
+  }
   type Pokemon {
     id: ID!
     num: ID!
@@ -37,11 +41,13 @@ const typeDefs = gql`
   }
 
   type Query {
-    pokemonSearch(searchTerm: String): [Pokemon]!
-    pokemonMany(skip: Int, limit: Int): [Pokemon!]!
+    pokemonFilters: Filters!
+    pokemonMany(skip: Int, limit: Int, searchTerm: String): [Pokemon!]!
     pokemonOne(id: ID!): Pokemon
   }
 `
+
+const pokemonValues = Object.values(pokemon);
 
 const resolvers: IResolvers<any, any> = {
   Pokemon: {
@@ -61,23 +67,36 @@ const resolvers: IResolvers<any, any> = {
     },
   },
   Query: {
-    pokemonSearch(_, { searchTerm }: { searchTerm: string }): Pokemon[] {
-      const pokemonValues = Object.values(pokemon);
-      const searchResult = pokemonValues.filter(poke => {
-        return poke.name.indexOf(searchTerm) != -1;
+    pokemonFilters(_, {}: {}): any {
+      let typeSet = new Set();
+      let weaknessSet = new Set();
+      pokemonValues.forEach(poke => {
+        poke.types.forEach(type => {
+          typeSet.add(type);
+        })
+        poke.weaknesses.forEach(type => {
+          weaknessSet.add(type);
+        })
       });
-      return searchResult;
+      const filters = { types: Array.from(typeSet), weaknesses: Array.from(weaknessSet) };
+      return filters;
     },
     pokemonMany(
       _,
-      { skip = 0, limit = 999 }: { skip?: number; limit?: number }
+      {skip = 0, limit = 999, searchTerm = ''}: { skip?: number; limit?: number; searchTerm?: string; }
     ): Pokemon[] {
-      return sortBy(pokemon, poke => parseInt(poke.id, 10)).slice(
+      let filteredPokemon = [...pokemonValues];
+      if (searchTerm) {
+        filteredPokemon = pokemonValues.filter(poke => {
+          return poke.name.toLowerCase().indexOf(searchTerm.toLowerCase()) != -1;
+        });
+      }
+      return sortBy(filteredPokemon, poke => parseInt(poke.id, 10)).slice(
         skip,
         limit + skip
       )
     },
-    pokemonOne(_, { id }: { id: string }): Pokemon {
+    pokemonOne(_, {id}: { id: string }): Pokemon {
       return (pokemon as Record<string, Pokemon>)[id]
     },
   },
@@ -88,6 +107,6 @@ const server = new ApolloServer({
   resolvers,
 })
 
-server.listen().then(({ url }) => {
+server.listen().then(({url}) => {
   console.log(`🚀  Server ready at ${url}`)
 })

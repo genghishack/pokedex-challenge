@@ -34,8 +34,8 @@ const ListItem = styled.li`
 `
 
 const POKEMON_MANY = gql`
-  query($skip: Int, $limit: Int) {
-    pokemonMany(skip: $skip, limit: $limit) {
+  query($skip: Int, $limit: Int, $searchTerm: String) {
+    pokemonMany(skip: $skip, limit: $limit, searchTerm: $searchTerm) {
       id
       name
       num
@@ -44,10 +44,10 @@ const POKEMON_MANY = gql`
   }
 `
 
-const Pokemon: React.FC<RouteComponentProps & { clickLink: Function }> = ({
-  clickLink,
+const Pokemon: React.FC<RouteComponentProps & { clickLink: Function, searchTerm: string }> = ({
+  clickLink, searchTerm
 }) => {
-  const { loading, error, data } = useQuery(POKEMON_MANY)
+  const { loading, error, data } = useQuery(POKEMON_MANY, { variables: { searchTerm }})
   const pokemonList:
     | Array<{ id: string; name: string; img: string; num: string }>
     | undefined = data?.pokemonMany

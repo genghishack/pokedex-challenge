@@ -4,19 +4,21 @@ import {RouteComponentProps, Link} from '@reach/router'
 import {useQuery, gql} from '@apollo/client'
 import Pokemon from './Pokemon'
 
-const Input = styled.div`
+const Section = styled.div`
   display: flex;
   justify-content: center;
   margin-top: 1rem;
 `
 
-const POKEMON_SEARCH = gql`
-    query($searchTerm: String) {
-        pokemonSearch(searchTerm: $searchTerm) {
-            id
-            name
-            num
-            img
+const Filters = styled.div`
+  margin: 0 1rem;
+`
+
+const POKEMON_FILTERS = gql`
+    query {
+        pokemonFilters {
+          types
+          weaknesses
         }
     }
 `
@@ -24,7 +26,7 @@ const POKEMON_SEARCH = gql`
 const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickLink}) => {
 
   const [searchTerm, setSearchTerm] = useState('');
-  const {loading, error, data} = useQuery(POKEMON_SEARCH, {variables: {searchTerm}});
+  const {loading, error, data} = useQuery(POKEMON_FILTERS);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
@@ -32,15 +34,26 @@ const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickL
 
   return (
     <>
-      <Input>
+      <Section>
         <input
           type="text"
           placeholder="Search"
           value={searchTerm}
           onChange={handleChange}
         />
-      </Input>
-      <Pokemon clickLink={clickLink}/>
+      </Section>
+      <Section>
+        Filter by:
+      </Section>
+      <Section>
+        <Filters>
+          <strong>Types</strong>
+        </Filters>
+        <Filters>
+          <strong>Weaknesses</strong>
+        </Filters>
+      </Section>
+      <Pokemon clickLink={clickLink} searchTerm={searchTerm} />
     </>
   )
 }
