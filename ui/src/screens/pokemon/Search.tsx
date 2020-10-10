@@ -14,6 +14,16 @@ const Filters = styled.div`
   margin: 0 1rem;
 `
 
+const Label = styled.label`
+  margin-bottom: 0;
+  cursor: url(https://unpkg.com/nes.css/assets/cursor-click.png), pointer;
+`
+
+const Checkbox = styled.input`
+  margin-right: 0.5rem;
+  cursor: url(https://unpkg.com/nes.css/assets/cursor-click.png), pointer;
+`
+
 const POKEMON_FILTERS = gql`
     query {
         pokemonFilters {
@@ -26,10 +36,20 @@ const POKEMON_FILTERS = gql`
 const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickLink}) => {
 
   const [searchTerm, setSearchTerm] = useState('');
-  const {loading, error, data} = useQuery(POKEMON_FILTERS);
-
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
+  }
+
+  const {loading, error, data} = useQuery(POKEMON_FILTERS);
+  const filters:
+    | { types: string[]; weaknesses: string[] }
+    | undefined = data?.pokemonFilters
+
+  if (loading) {
+    return <p>Loading...</p>
+  }
+  if (error || !filters) {
+    return <p>Error!</p>
   }
 
   return (
@@ -48,9 +68,29 @@ const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickL
       <Section>
         <Filters>
           <strong>Types</strong>
+          {filters.types.map((filter: string) => {
+            return (
+              <div>
+                <Label>
+                  <Checkbox type="checkbox" value={filter} />
+                  {filter}
+                </Label>
+              </div>
+            );
+          })}
         </Filters>
         <Filters>
           <strong>Weaknesses</strong>
+          {filters.weaknesses.map((filter: string) => {
+            return (
+              <div>
+                <Label>
+                  <Checkbox type="checkbox" value={filter} />
+                  {filter}
+                </Label>
+              </div>
+            );
+          })}
         </Filters>
       </Section>
       <Pokemon clickLink={clickLink} searchTerm={searchTerm} />
