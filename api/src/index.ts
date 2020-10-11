@@ -72,6 +72,8 @@ const typeDefs = gql`
 const pokemonValues = Object.values(pokemon);
 
 // A fuzzy search function leveraging the fuse.js library.
+// If no search term is provided, all results are returned.
+//
 // I chose fuse because, honestly, implementing a fuzzy search is new to me.
 // I did some research, dug into stackoverflow, read some blogs on the subject.
 // I'm aware there are other libraries out there that may provide better, more
@@ -87,8 +89,8 @@ const pokemonValues = Object.values(pokemon);
 const applySearchTerm = (resultSet: Pokemon[], searchTerm: string) => {
   if (searchTerm) {
     const fuse = new Fuse(resultSet, {
-      includeScore: true,
-      includeMatches: true,
+      includeScore: false,
+      includeMatches: false,
       ignoreLocation: true,
       minMatchCharLength: 3, // so as not to get TOO many results back.
       keys: ['name']
