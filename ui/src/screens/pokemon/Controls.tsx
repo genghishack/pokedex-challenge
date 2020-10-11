@@ -1,8 +1,10 @@
 import React, {ChangeEvent, useState} from 'react';
-import styled from 'styled-components'
-import {RouteComponentProps, Link} from '@reach/router'
-import {useQuery, gql} from '@apollo/client'
-import Pokemon from './Pokemon'
+import styled from 'styled-components';
+import {RouteComponentProps, Link} from '@reach/router';
+import {useQuery, gql} from '@apollo/client';
+import { FilterOptions } from '../../types';
+import Search from './Search';
+import Filter from './Filter';
 
 const Section = styled.div`
   display: flex;
@@ -10,16 +12,12 @@ const Section = styled.div`
   margin-top: 1rem;
 `
 
-const Filters = styled.div`
-  margin: 0 1rem;
-`
-
 const Label = styled.label`
-  margin-bottom: 0;
+  margin: 0 0.5rem;
   cursor: url(https://unpkg.com/nes.css/assets/cursor-click.png), pointer;
 `
 
-const Checkbox = styled.input`
+const Radio = styled.input`
   margin-right: 0.5rem;
   cursor: url(https://unpkg.com/nes.css/assets/cursor-click.png), pointer;
 `
@@ -33,36 +31,21 @@ const POKEMON_FILTERS = gql`
     }
 `
 
-const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickLink}) => {
+// My original impulse was to combine both search and filters into one interface,
+// so that only one result set was returned using both criteria.  However, the
+// instructions say to write a new resolver for search.  This indicated to me that
+// the queries should be run separately, with different sets of results.  Hence
+// the option to choose EITHER search OR filter, but not both at once.
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-  }
-
-  const [types, setTypes] = useState<string[]>([]);
-  const [weaknesses, setWeaknesses] = useState<string[]>([]);
-  const handleFilterChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { name: filterName, value: filterValue, checked: filterChecked } = event.target;
-    let filter = types;
-    let setFilter = setTypes;
-    let newFilter = [...types];
-    if (filterName === 'weakness') {
-      filter = weaknesses;
-      setFilter = setWeaknesses;
-      newFilter = [...weaknesses];
-    }
-    if (!filterChecked && filter.includes(filterValue)) {
-      newFilter = filter.filter(value => value !== filterValue);
-    } else if (filterChecked && !filter.includes(filterValue)) {
-      newFilter.push(filterValue);
-    }
-    setFilter(newFilter);
+const Controls: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickLink}) => {
+  const [controlType, setControlType] = useState('search');
+  const handleControlTypeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setControlType(event.target.value);
   }
 
   const {loading, error, data} = useQuery(POKEMON_FILTERS);
   const filters:
-    | { types: string[]; weaknesses: string[] }
+    | FilterOptions
     | undefined = data?.pokemonFilters
 
   if (loading) {
@@ -72,46 +55,36 @@ const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickL
     return <p>Error!</p>
   }
 
-  const renderFilter = (filterName: "type" | "weakness", filterValue: string) => (
-    <div>
-      <Label>
-        <Checkbox
-          type="checkbox"
-          name={filterName}
-          value={filterValue}
-          onChange={handleFilterChange}
-        />
-        {filterValue}
-      </Label>
-    </div>
-  )
-
   return (
     <>
       <Section>
-        <input
-          type="text"
-          placeholder="Search"
-          value={searchTerm}
-          onChange={handleSearchChange}
-        />
+        <Label>
+          <Radio
+            type="radio"
+            name="controlType"
+            value="search"
+            defaultChecked={true}
+            onChange={handleControlTypeChange}
+          />
+          Search
+        </Label>
+        <Label>
+          <Radio
+            type="radio"
+            name="controlType"
+            value="filter"
+            onChange={handleControlTypeChange}
+          />
+          Filter
+        </Label>
       </Section>
-      <Section>
-        Filter by:
-      </Section>
-      <Section>
-        <Filters>
-          <strong>Types</strong>
-          {filters.types.map((filter: string) => renderFilter('type', filter))}
-        </Filters>
-        <Filters>
-          <strong>Weaknesses</strong>
-          {filters.weaknesses.map((filter: string) => renderFilter('weakness', filter))}
-        </Filters>
-      </Section>
-      <Pokemon clickLink={clickLink} searchTerm={searchTerm} filters={{ types, weaknesses }}/>
+      {controlType === 'search' ? (
+        <Search clickLink={clickLink}/>
+      ) : (
+        <Filter clickLink={clickLink} filterOptions={filters}/>
+      )}
     </>
   )
 }
 
-export default Search
+export default Controls

@@ -2,6 +2,7 @@ import React, {ChangeEvent, useState} from 'react';
 import styled from 'styled-components'
 import {RouteComponentProps, Link} from '@reach/router'
 import {useQuery, gql} from '@apollo/client'
+import {PokemonListResult} from "../../types";
 import Pokemon from './Pokemon'
 
 const Section = styled.div`
@@ -10,27 +11,23 @@ const Section = styled.div`
   margin-top: 1rem;
 `
 
-const Filters = styled.div`
-  margin: 0 1rem;
-`
-
-const Label = styled.label`
-  margin-bottom: 0;
-  cursor: url(https://unpkg.com/nes.css/assets/cursor-click.png), pointer;
-`
-
-const Checkbox = styled.input`
-  margin-right: 0.5rem;
-  cursor: url(https://unpkg.com/nes.css/assets/cursor-click.png), pointer;
-`
-
-const POKEMON_FILTERS = gql`
-    query {
-        pokemonFilters {
-          types
-          weaknesses
-        }
+const POKEMON_SEARCH = gql`
+  query(
+    $skip: Int, 
+    $limit: Int, 
+    $searchTerm: String
+  ) {
+    pokemonSearch(
+      skip: $skip, 
+      limit: $limit, 
+      searchTerm: $searchTerm
+    ) {
+      id
+      name
+      num
+      img
     }
+  }
 `
 
 const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickLink}) => {
@@ -40,51 +37,12 @@ const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickL
     setSearchTerm(event.target.value);
   }
 
-  const [types, setTypes] = useState<string[]>([]);
-  const [weaknesses, setWeaknesses] = useState<string[]>([]);
-  const handleFilterChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { name: filterName, value: filterValue, checked: filterChecked } = event.target;
-    let filter = types;
-    let setFilter = setTypes;
-    let newFilter = [...types];
-    if (filterName === 'weakness') {
-      filter = weaknesses;
-      setFilter = setWeaknesses;
-      newFilter = [...weaknesses];
-    }
-    if (!filterChecked && filter.includes(filterValue)) {
-      newFilter = filter.filter(value => value !== filterValue);
-    } else if (filterChecked && !filter.includes(filterValue)) {
-      newFilter.push(filterValue);
-    }
-    setFilter(newFilter);
-  }
-
-  const {loading, error, data} = useQuery(POKEMON_FILTERS);
-  const filters:
-    | { types: string[]; weaknesses: string[] }
-    | undefined = data?.pokemonFilters
-
-  if (loading) {
-    return <p>Loading...</p>
-  }
-  if (error || !filters) {
-    return <p>Error!</p>
-  }
-
-  const renderFilter = (filterName: "type" | "weakness", filterValue: string) => (
-    <div>
-      <Label>
-        <Checkbox
-          type="checkbox"
-          name={filterName}
-          value={filterValue}
-          onChange={handleFilterChange}
-        />
-        {filterValue}
-      </Label>
-    </div>
-  )
+  const {loading, error, data} = useQuery(POKEMON_SEARCH, {
+    variables: {searchTerm}
+  })
+  const pokemonList:
+    | Array<PokemonListResult>
+    | undefined = data?.pokemonSearch
 
   return (
     <>
@@ -96,20 +54,11 @@ const Search: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickL
           onChange={handleSearchChange}
         />
       </Section>
-      <Section>
-        Filter by:
-      </Section>
-      <Section>
-        <Filters>
-          <strong>Types</strong>
-          {filters.types.map((filter: string) => renderFilter('type', filter))}
-        </Filters>
-        <Filters>
-          <strong>Weaknesses</strong>
-          {filters.weaknesses.map((filter: string) => renderFilter('weakness', filter))}
-        </Filters>
-      </Section>
-      <Pokemon clickLink={clickLink} searchTerm={searchTerm} filters={{ types, weaknesses }}/>
+      {
+        (loading) ? <p>Loading...</p> :
+          (error || !pokemonList) ? <p>Error!</p> :
+            <Pokemon clickLink={clickLink} pokemonList={pokemonList}/>
+      }
     </>
   )
 }

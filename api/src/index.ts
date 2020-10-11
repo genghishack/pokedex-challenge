@@ -122,7 +122,10 @@ const resolvers: IResolvers<any, any> = {
           weaknessSet.add(type);
         })
       });
-      const filters = {types: Array.from(typeSet), weaknesses: Array.from(weaknessSet)};
+      const filters = {
+        types: Array.from(typeSet).sort(),
+        weaknesses: Array.from(weaknessSet).sort()
+      };
       return filters;
     },
     // A separate search resolver per the instructions.  I also wrote a combined version

@@ -1,13 +1,8 @@
 import React from 'react'
 import styled from 'styled-components'
 import { RouteComponentProps, Link } from '@reach/router'
-import { useQuery, gql } from '@apollo/client'
+import {PokemonListResult} from "../../types";
 import { Container as NesContainer } from 'nes-react'
-
-type Filters = {
-  types: string[];
-  weaknesses: string[];
-}
 
 const Container = styled(NesContainer)`
   && {
@@ -38,65 +33,12 @@ const ListItem = styled.li`
   }
 `
 
-const POKEMON_SEARCH = gql`
-  query(
-    $skip: Int, 
-    $limit: Int, 
-    $searchTerm: String
-  ) {
-    pokemonMany(
-      skip: $skip, 
-      limit: $limit, 
-      searchTerm: $searchTerm
-    ) {
-      id
-      name
-      num
-      img
-    }
-  }
-`
-
-const POKEMON_MANY = gql`
-  query(
-    $skip: Int, 
-    $limit: Int, 
-    $filters: FiltersInput
-  ) {
-    pokemonMany(
-      skip: $skip, 
-      limit: $limit, 
-      filters: $filters
-    ) {
-      id
-      name
-      num
-      img
-    }
-  }
-`
-
 const Pokemon: React.FC<RouteComponentProps & {
   clickLink: Function,
-  searchTerm: string,
-  filters: Filters
+  pokemonList: PokemonListResult[]
 }> = ({
-  clickLink, searchTerm, filters
+  clickLink, pokemonList
 }) => {
-  const { loading, error, data } = useQuery(POKEMON_MANY, {
-    variables: { filters }
-  })
-  const pokemonList:
-    | Array<{ id: string; name: string; img: string; num: string }>
-    | undefined = data?.pokemonMany
-
-  if (loading) {
-    return <p>Loading...</p>
-  }
-  if (error || !pokemonList) {
-    return <p>Error!</p>
-  }
-
   return (
     <Container rounded>
       <List>
