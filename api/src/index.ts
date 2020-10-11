@@ -1,7 +1,19 @@
 import {ApolloServer, gql, IResolvers} from 'apollo-server'
+import Fuse from 'fuse.js'
 import sortBy from 'lodash/sortBy'
 import find from 'lodash/find'
 import pokemon from './pokemon.json'
+
+// My original impulse was to combine both search and filters into one interface,
+// so that only one result set was returned using both criteria.  However, the
+// instructions say to write a new resolver for search, and to implement filtering
+// on the existing pokemonMany resolver.  This indicated to me that
+// the queries should be run separately, with different sets of results.  Hence
+// the option to choose EITHER search OR filter, but not use both at once.
+//
+// If you're interested, there is a branch called 'combined' on which I saved
+// my work when I was implementing both search and filter as One Query To Rule
+// Them All(tm), but it's not as functionally complete as this final version.
 
 interface Filters {
   types: string[]
@@ -59,24 +71,33 @@ const typeDefs = gql`
 
 const pokemonValues = Object.values(pokemon);
 
-// A simple search function.  Returns an array of pokemon whose names contain
-// the search string.  (Placeholder - does NOT meet the requirements for fuzzy search.)
+// A fuzzy search function leveraging the fuse.js library.
+// I chose fuse because, honestly, implementing a fuzzy search is new to me.
+// I did some research, dug into stackoverflow, read some blogs on the subject.
+// I'm aware there are other libraries out there that may provide better, more
+// accurate results, or are more performant, but my decision came down to overall
+// popularity, recent maintenance, and documentation/ease of use.  Performance
+// was not much of a consideration, given the dataset is only 150 records for
+// this project.  Although I did find some complaints about fuse, they were years
+// old, and more recent updates seemed to have covered these.
+//
+// I learned a lot in the process, and if I were to explore this more in-depth,
+// I would try some of the other libraries like flexsearch.js, which uses contextual
+// matching and appears to be far more performant, but has a steeper learning curve.
 const applySearchTerm = (resultSet: Pokemon[], searchTerm: string) => {
   if (searchTerm) {
-    return resultSet.filter(poke => {
-      return poke.name.toLowerCase().indexOf(searchTerm.toLowerCase()) != -1;
+    const fuse = new Fuse(resultSet, {
+      includeScore: true,
+      includeMatches: true,
+      ignoreLocation: true,
+      minMatchCharLength: 3, // so as not to get TOO many results back.
+      keys: ['name']
+    });
+    return fuse.search(searchTerm).map(result => {
+      return result.item;
     });
   }
   return resultSet;
-}
-
-// Abstracted the sort function, so that it can be called by our search resolver
-// without duplicating code.
-const applySort = (resultSet: Pokemon[], skip: number, limit: number) => {
-  return sortBy(resultSet, poke => parseInt(poke.id, 10)).slice(
-    skip,
-    limit + skip
-  )
 }
 
 // Apply type and weakness filters to an array of pokemon.
@@ -89,6 +110,15 @@ const applyFilters = (resultSet: Pokemon[], filters: Filters) => {
       filters.weaknesses.every(value => poke.weaknesses.indexOf(value) >= 0) : true;
     return (hasAllTypes && hasAllWeaknesses);
   });
+}
+
+// Abstracted the sort function, so that it can be called by our search resolver
+// without duplicating code.
+const applySort = (resultSet: Pokemon[], skip: number, limit: number) => {
+  return sortBy(resultSet, poke => parseInt(poke.id, 10)).slice(
+    skip,
+    limit + skip
+  )
 }
 
 const resolvers: IResolvers<any, any> = {

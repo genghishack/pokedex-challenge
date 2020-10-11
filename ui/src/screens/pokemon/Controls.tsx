@@ -31,12 +31,6 @@ const POKEMON_FILTERS = gql`
     }
 `
 
-// My original impulse was to combine both search and filters into one interface,
-// so that only one result set was returned using both criteria.  However, the
-// instructions say to write a new resolver for search.  This indicated to me that
-// the queries should be run separately, with different sets of results.  Hence
-// the option to choose EITHER search OR filter, but not both at once.
-
 const Controls: React.FC<RouteComponentProps & { clickLink: Function }> = ({clickLink}) => {
   const [controlType, setControlType] = useState('search');
   const handleControlTypeChange = (event: ChangeEvent<HTMLInputElement>) => {
