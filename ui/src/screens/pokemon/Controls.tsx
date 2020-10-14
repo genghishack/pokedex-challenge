@@ -22,6 +22,11 @@ const Radio = styled.input`
   cursor: url(https://unpkg.com/nes.css/assets/cursor-click.png), pointer;
 `
 
+/**
+ * The POKEMON_FILTERS query is here to future-proof the code against pokemon being
+ * added to or deleted from the data set, which could cause the filters to require
+ * updating if they were hard-coded.  This way, they draw directly from the data.
+ */
 const POKEMON_FILTERS = gql`
     query {
         pokemonFilters {
