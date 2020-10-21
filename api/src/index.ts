@@ -1,7 +1,9 @@
 import {ApolloServer, gql, IResolvers} from 'apollo-server'
 import sortBy from 'lodash/sortBy'
 import find from 'lodash/find'
+import Fuse from 'fuse.js'
 import pokemon from './pokemon.json'
+import { arrayContainsArray } from 'utils'
 
 interface Filters {
   types: string[]
@@ -58,14 +60,17 @@ const typeDefs = gql`
 
 const pokemonValues = Object.values(pokemon);
 
-const arrayContainsArray = (superset: any[], subset: any[]) => {
-  return subset.every(value => superset.indexOf(value) >= 0);
-}
-
 const applySearchTerm = (resultSet: Pokemon[], searchTerm: string) => {
   if (searchTerm) {
-    return resultSet.filter(poke => {
-      return poke.name.toLowerCase().indexOf(searchTerm.toLowerCase()) != -1;
+    const fuse = new Fuse(resultSet, {
+      includeScore: false,
+      includeMatches: false,
+      ignoreLocation: true,
+      minMatchCharLength: 3, // so as not to get TOO many results back.
+      keys: ['name']
+    });
+    return fuse.search(searchTerm).map(result => {
+      return result.item;
     });
   }
   return resultSet;
@@ -73,16 +78,21 @@ const applySearchTerm = (resultSet: Pokemon[], searchTerm: string) => {
 
 const applyFilters = (resultSet: Pokemon[], filters: Filters) => {
   return resultSet.filter(poke => {
-    let hasAllTypes = true;
-    let hasAllWeaknesses = true;
-    if (filters.types.length) {
-      hasAllTypes = arrayContainsArray(poke.types, filters.types);
-    }
-    if (filters.weaknesses.length) {
-      hasAllWeaknesses = arrayContainsArray(poke.weaknesses, filters.weaknesses);
-    }
+    const hasAllTypes = (filters.types.length) ?
+      arrayContainsArray(poke.types, filters.types) : true;
+    // filters.types.every(value => poke.types.indexOf(value) >= 0) : true;
+    const hasAllWeaknesses = (filters.weaknesses.length) ?
+      arrayContainsArray(poke.weaknesses, filters.weaknesses) : true;
+    // filters.weaknesses.every(value => poke.weaknesses.indexOf(value) >= 0) : true;
     return (hasAllTypes && hasAllWeaknesses);
   });
+}
+
+const applySort = (resultSet: Pokemon[], skip: number, limit: number) => {
+  return sortBy(resultSet, poke => parseInt(poke.id, 10)).slice(
+    skip,
+    limit + skip
+  )
 }
 
 const resolvers: IResolvers<any, any> = {
@@ -123,17 +133,7 @@ const resolvers: IResolvers<any, any> = {
         skip = 0, limit = 999, searchTerm = '', filters = {types: [], weaknesses: []}
       }: { skip?: number; limit?: number; searchTerm?: string; filters?: Filters }
     ): Pokemon[] {
-      // apply search term
-      const searchResults = applySearchTerm(pokemonValues, searchTerm);
-      console.log('searchResults: ', searchResults);
-      // apply filters
-      const filteredResults = applyFilters(searchResults, filters);
-      console.log('filteredResults', filteredResults);
-      // apply sort
-      return sortBy(filteredResults, poke => parseInt(poke.id, 10)).slice(
-        skip,
-        limit + skip
-      )
+      return applySort(applyFilters(applySearchTerm(pokemonValues, searchTerm), filters), skip, limit)
     },
     pokemonOne(_, {id}: { id: string }): Pokemon {
       return (pokemon as Record<string, Pokemon>)[id]
