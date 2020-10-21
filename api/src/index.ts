@@ -3,6 +3,7 @@ import Fuse from 'fuse.js'
 import sortBy from 'lodash/sortBy'
 import find from 'lodash/find'
 import pokemon from './pokemon.json'
+import {arrayContainsArray} from "./utils";
 
 // My original impulse was to combine both search and filters into one interface,
 // so that only one result set was returned using both criteria.  However, the
@@ -107,9 +108,11 @@ const applySearchTerm = (resultSet: Pokemon[], searchTerm: string) => {
 const applyFilters = (resultSet: Pokemon[], filters: Filters) => {
   return resultSet.filter(poke => {
     const hasAllTypes = (filters.types.length) ?
-      filters.types.every(value => poke.types.indexOf(value) >= 0) : true;
+      arrayContainsArray(poke.types, filters.types) : true;
+      // filters.types.every(value => poke.types.indexOf(value) >= 0) : true;
     const hasAllWeaknesses = (filters.weaknesses.length) ?
-      filters.weaknesses.every(value => poke.weaknesses.indexOf(value) >= 0) : true;
+      arrayContainsArray(poke.weaknesses, filters.weaknesses) : true;
+      // filters.weaknesses.every(value => poke.weaknesses.indexOf(value) >= 0) : true;
     return (hasAllTypes && hasAllWeaknesses);
   });
 }
