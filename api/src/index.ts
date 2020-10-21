@@ -109,10 +109,8 @@ const applyFilters = (resultSet: Pokemon[], filters: Filters) => {
   return resultSet.filter(poke => {
     const hasAllTypes = (filters.types.length) ?
       arrayContainsArray(poke.types, filters.types) : true;
-      // filters.types.every(value => poke.types.indexOf(value) >= 0) : true;
     const hasAllWeaknesses = (filters.weaknesses.length) ?
       arrayContainsArray(poke.weaknesses, filters.weaknesses) : true;
-      // filters.weaknesses.every(value => poke.weaknesses.indexOf(value) >= 0) : true;
     return (hasAllTypes && hasAllWeaknesses);
   });
 }
